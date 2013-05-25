@@ -340,8 +340,11 @@ getContents: function(a_url, a_params)
     }
     req.open("GET", a_url + urlParams, false);
     req.send(null);
-    var root = $(req.responseXML.documentElement);
-    if ((req.status != 200) || root.is("error"))
+    var root = null;
+    if (req.status == 200) {
+        root = $(req.responseXML.documentElement);
+    }
+    if ((req.status != 200) || root == null || root.is("error"))
     {
         var msg = root.is("error") ? root.text() :
                                      "Error getting sentence (" +
@@ -370,6 +373,9 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
     if (this.d_saveCursor == this.d_historyCursor)
       return;
 
+    if (a_url.match('local')) {
+        return AlphEdit.ExportContents(a_xml,a_url);
+    }
     // send synchronous request to save
     var req = new XMLHttpRequest();
     req.open("POST", a_url + "?doc=" + a_doc + "&s=" + a_sentid, false);
@@ -389,6 +395,37 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
         alert(msg);
         throw(msg);
     }
+},
+
+
+// export contents to file
+ExportContents: function(a_xml,a_url)
+{
+    var sentence_id = $("#sentence-xml").attr("data-sentencenum");
+    var tbdoc = $("#doc-xml");
+    var postdoc = $(tbdoc).clone().append(a_xml);
+    var req = new XMLHttpRequest();
+    req.open("POST", a_url + "?s="+sentence_id, false);
+    req.setRequestHeader("Content-Type", "application/xml");
+    req.send(XMLSerializer().serializeToString(postdoc.get(0)));
+    var root = $(req.responseXML.documentElement);
+    if ((req.status != 200) || root.is("error"))
+    {
+        var msg = root.is("error") ? root.text() :
+                                     "Error save sentence " +
+                                       sentence_id + " : " +
+                                       (req.responseText ? req.responseText :
+                                                           req.statusText);
+                                                            
+        alert(msg);
+        throw(msg);
+    } 
+    $(tbdoc).html(root);
+    var input = $("#docForExport");
+    var contents = XMLSerializer().serializeToString($(tbdoc).get(0).firstChild);
+    input.val(contents);
+    $("#docForList").val(contents);
+    $("#exportform").submit();
 },
 
 //****************************************************************************
