@@ -331,14 +331,11 @@ getContents: function(a_url, a_params)
 {
     // get treebank sentence
     var req = new XMLHttpRequest();
-    var urlParams = "";
-    var first = true;
-    for (var key in a_params)
-    {
-        urlParams += (first ? "?" : "&") + key + "=" + a_params[key];
-        first = false;
-    }
-    req.open("GET", a_url + urlParams, false);
+    var builtUrl = a_url.replace('DOC_REPLACE',a_params['doc']);
+    builtUrl = builtUrl.replace('S_REPLACE',(a_params['id'] ? a_params['id'] : a_params['s']));
+    builtUrl = builtUrl.replace('APP_REPLACE',a_params['app']);
+    req.open("GET", builtUrl, false);
+    
     req.send(null);
     var root = null;
     if (req.status == 200) {
@@ -373,12 +370,25 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
     if (this.d_saveCursor == this.d_historyCursor)
       return;
 
-    if (a_url.match('local')) {
+    if (a_url == ('local')) {
         return AlphEdit.ExportContents(a_xml,a_url);
     }
     // send synchronous request to save
     var req = new XMLHttpRequest();
-    req.open("POST", a_url + "?doc=" + a_doc + "&s=" + a_sentid, false);
+    var builtUrl = a_url.replace('DOC_REPLACE',a_doc);
+    builtUrl = builtUrl.replace('S_REPLACE',a_sentid);
+    req.open("POST", builtUrl, false);
+    // check to see if we need to send a session token
+    var sessionToken = $("meta[name='alpheios-sessionTokenName']").attr("content");
+    var sessionHeader = $("meta[name='alpheios-sessionHeaderName']").attr("content");
+    // Only send the token to same-origin, relative URLs only.
+    if (sessionToken && sessionHeader && AlphEdit.sameOrigin(builtUrl)) {
+        var csrftoken = AlphEdit.getCookie(sessionToken);
+        // Only if we have the cookie
+        if (csrftoken) {
+            req.setRequestHeader(sessionHeader, csrftoken);
+        }
+    }
     req.setRequestHeader("Content-Type", "application/xml");
     req.send(XMLSerializer().serializeToString(a_xml));
     var root = $(req.responseXML.documentElement);
@@ -399,33 +409,23 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
 
 
 // export contents to file
-ExportContents: function(a_xml,a_url)
+ExportContents: function(a_xml,a_lang,a_format)
 {
-    var sentence_id = $("#sentence-xml").attr("data-sentencenum");
-    var tbdoc = $("#doc-xml");
-    var postdoc = $(tbdoc).clone().append(a_xml);
-    var req = new XMLHttpRequest();
-    req.open("POST", a_url + "?s="+sentence_id, false);
-    req.setRequestHeader("Content-Type", "application/xml");
-    req.send(XMLSerializer().serializeToString(postdoc.get(0)));
-    var root = $(req.responseXML.documentElement);
-    if ((req.status != 200) || root.is("error"))
-    {
-        var msg = root.is("error") ? root.text() :
-                                     "Error save sentence " +
-                                       sentence_id + " : " +
-                                       (req.responseText ? req.responseText :
-                                                           req.statusText);
-                                                            
-        alert(msg);
-        throw(msg);
-    } 
-    $(tbdoc).html(root);
-    var input = $("#docForExport");
-    var contents = XMLSerializer().serializeToString($(tbdoc).get(0).firstChild);
-    input.val(contents);
-    $("#docForList").val(contents);
+    var input = $("#sentenceForExport");
+    input.val(XMLSerializer().serializeToString(a_xml));
+    $("input[name=sentenceExportFormat]").val(a_format);
+    $("input[name=sentenceExportLang]").val(a_lang);
     $("#exportform").submit();
+},
+
+// export display to file
+ExportDisplay: function(a_xml,a_lang,a_format)
+{
+   var input = $("#sentenceForDisplay");
+    input.val(XMLSerializer().serializeToString(a_xml));
+    $("input[name=sentenceDisplayFormat]").val(a_format);
+    $("input[name=sentenceDisplayLang]").val(a_lang);
+    $("#exportdisplayform").submit();
 },
 
 //****************************************************************************
@@ -484,6 +484,48 @@ reverseText : function(a_nodes, a_attr)
             thisNode.text(text.split("").reverse().join(""));
         }
     });
+}, 
+
+/**
+ * Test that a supplied url has the same origin as the document
+ * @param {String} a_url the url to test
+ * @return true if the same origin, otherwise false 
+ */
+sameOrigin: function(a_url) {
+    // test that a given url is a same-origin URL
+    // url could be relative or scheme relative or absolute
+    var host = document.location.host; // host + port
+    var protocol = document.location.protocol;
+    var sr_origin = '//' + host;
+    var origin = protocol + sr_origin;
+    // Allow absolute or scheme relative URLs to same origin
+    return (a_url == origin || a_url.slice(0, origin.length + 1) == origin + '/') ||
+        (a_url == sr_origin || a_url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+        // or any other URL that isn't scheme relative or absolute i.e relative.
+        !(/^(\/\/|http:|https:).*/.test(a_url));
+},
+
+/**
+ * Get a cookie with the supplied name
+ * @param {String} name the cookie name
+ * @return the value of the cookie or null if not found
+ */
+getCookie: function(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = $.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
+
+
 
 }
