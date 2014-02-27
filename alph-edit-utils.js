@@ -129,6 +129,9 @@ clearHistory : function()
  */
 pushHistory : function(a_hEvent, a_updateCallback)
 {
+    // remove any lingering save message
+    $("#alpheios-put-notice").html('');
+    
     // destroy any redo history and adjust save points and buttons
     if (this.d_historyCursor < this.d_history.length)
     {
@@ -365,6 +368,8 @@ getContents: function(a_url, a_params)
  */
 putContents: function(a_xml, a_url, a_doc, a_sentid)
 {
+    // clear any old notice out
+    $("#alpheios-put-notice").html('');
     // if nothing has changed, do nothing
     // (shouldn't ever happen because save button should be disabled)
     if (this.d_saveCursor == this.d_historyCursor)
@@ -391,19 +396,20 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
     }
     req.setRequestHeader("Content-Type", "application/xml");
     req.send(XMLSerializer().serializeToString(a_xml));
-    var root = $(req.responseXML.documentElement);
-    if ((req.status != 200) || root.is("error"))
+    if ((req.status != 200) || req.responseXML == null || $(req.responseXML.documentElement).is("error"))
     {
-        var msg = root.is("error") ? root.text() :
-                                     "Error putting sentence " +
-                                       a_sentid +
-                                       " into treebank " +
-                                       a_doc +
-                                       ": " +
-                                       (req.responseText ? req.responseText :
-                                                           req.statusText);
-        alert(msg);
+        var msg = "ERROR!! CHANGES NOT SAVED!<br/>"
+        if (req.responseXML != null &&  $(req.responseXML.documentElement).is("error"))
+        { 
+            msg = msg + $(req.responseXML.documentElement).text();
+        } else {
+            msg = msg + "Error saving sentence " + a_sentid + " in " + a_doc;
+        }
+        msg = msg + ": " + (req.responseText ? req.responseText : req.statusText);
+        $("#alpheios-put-notice").addClass("error").text(msg);
         throw(msg);
+    } else {
+        $("#alpheios-put-notice").removeClass("error").html("Changes Saved!");
     }
 },
 
