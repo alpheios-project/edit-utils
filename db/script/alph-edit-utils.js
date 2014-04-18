@@ -123,6 +123,15 @@ clearHistory : function()
 },
 
 /**
+ * Clear notifications
+ */
+clearNotifications : function()
+{
+    $("#alpheios-put-notice").empty();
+},
+
+
+/**
  * Add event to history
  * @param {Array} a_hEvent event
  * @param {function} a_updateCallback update callback function
