@@ -123,6 +123,15 @@ clearHistory : function()
 },
 
 /**
+ * Clear notifications
+ */
+clearNotifications : function()
+{
+    $("#alpheios-put-notice").empty();
+},
+
+
+/**
  * Add event to history
  * @param {Array} a_hEvent event
  * @param {function} a_updateCallback update callback function
@@ -130,7 +139,7 @@ clearHistory : function()
 pushHistory : function(a_hEvent, a_updateCallback)
 {
     // remove any lingering save message
-    $("#alpheios-put-notice").html('');
+    AlphEdit.clearNotifications();
     
     // destroy any redo history and adjust save points and buttons
     if (this.d_historyCursor < this.d_history.length)
