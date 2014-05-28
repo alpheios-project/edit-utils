@@ -404,7 +404,11 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
         }
     }
     req.setRequestHeader("Content-Type", "application/xml");
-    req.send(XMLSerializer().serializeToString(a_xml));
+    if (typeof a_xml != 'string') {
+        req.send(new XMLSerializer().serializeToString(a_xml));    
+    } else {
+        req.send(a_xml);
+    }
     if ((req.status != 200) || req.responseXML == null || $(req.responseXML.documentElement).is("error"))
     {
         var msg = "ERROR!! CHANGES NOT SAVED!<br/>"
@@ -420,6 +424,7 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
     } else {
         $("#alpheios-put-notice").removeClass("error").html("Changes Saved!");
     }
+    return req.responseXML;
 },
 
 
