@@ -411,15 +411,26 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
     }
     if ((req.status != 200) || req.responseXML == null || $(req.responseXML.documentElement).is("error"))
     {
+        var httpmsg = req.responseText ? req.responseText : req.statusText;
         var msg = "ERROR!! CHANGES NOT SAVED!<br/>"
+        // prefer explicit error messags over general http ones
         if (req.responseXML != null &&  $(req.responseXML.documentElement).is("error"))
-        { 
+        {  
+            var links = [];
+            $("link",req.responseXML.documentElement).each(function(){
+                links.push($(this).attr("href") || $(this).attr("xlink:href"));
+            });
             msg = msg + $(req.responseXML.documentElement).text();
+            for (var i=0; i<links.length; i++) {
+                var regex = new RegExp(links[i].replace(/([.*+?^${}()|\[\]\/\\])/g, "\\$1"));
+                msg = msg.replace(regex,'<a href="' + links[i] + '">' + links[i] + '</a>')
+            }
+        } else if (httpmsg) {
+            msg = msg + httpmsg;
         } else {
             msg = msg + "Error saving sentence " + a_sentid + " in " + a_doc;
         }
-        msg = msg + ": " + (req.responseText ? req.responseText : req.statusText);
-        $("#alpheios-put-notice").addClass("error").text(msg);
+        $("#alpheios-put-notice").addClass("error").html(msg);
         throw(msg);
     } else {
         $("#alpheios-put-notice").removeClass("error").html("Changes Saved!");
@@ -432,7 +443,7 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
 ExportContents: function(a_xml,a_lang,a_format)
 {
     var input = $("#sentenceForExport");
-    input.val(XMLSerializer().serializeToString(a_xml));
+    input.val(new XMLSerializer().serializeToString(a_xml));
     $("input[name=sentenceExportFormat]").val(a_format);
     $("input[name=sentenceExportLang]").val(a_lang);
     $("#exportform").submit();
@@ -442,7 +453,7 @@ ExportContents: function(a_xml,a_lang,a_format)
 ExportDisplay: function(a_xml,a_lang,a_format)
 {
    var input = $("#sentenceForDisplay");
-    input.val(XMLSerializer().serializeToString(a_xml));
+    input.val(new XMLSerializer().serializeToString(a_xml));
     $("input[name=sentenceDisplayFormat]").val(a_format);
     $("input[name=sentenceDisplayLang]").val(a_lang);
     $("#exportdisplayform").submit();
