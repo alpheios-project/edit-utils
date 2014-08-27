@@ -405,7 +405,7 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
     }
     req.setRequestHeader("Content-Type", "application/xml");
     if (typeof a_xml != 'string') {
-        req.send(new XMLSerializer().serializeToString(a_xml));    
+        req.send(AlphEdit.serializeToString(a_xml));    
     } else {
         req.send(a_xml);
     }
@@ -443,7 +443,7 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
 ExportContents: function(a_xml,a_lang,a_format)
 {
     var input = $("#sentenceForExport");
-    input.val(new XMLSerializer().serializeToString(a_xml));
+    input.val(AlphEdit.serializeToString(a_xml));
     $("input[name=sentenceExportFormat]").val(a_format);
     $("input[name=sentenceExportLang]").val(a_lang);
     $("#exportform").submit();
@@ -453,7 +453,7 @@ ExportContents: function(a_xml,a_lang,a_format)
 ExportDisplay: function(a_xml,a_lang,a_format)
 {
    var input = $("#sentenceForDisplay");
-    input.val(new XMLSerializer().serializeToString(a_xml));
+    input.val(AlphEdit.serializeToString(a_xml));
     $("input[name=sentenceDisplayFormat]").val(a_format);
     $("input[name=sentenceDisplayLang]").val(a_lang);
     $("#exportdisplayform").submit();
@@ -555,8 +555,18 @@ getCookie: function(name) {
         }
     }
     return cookieValue;
+},
+
+// this is a horrible hack to prevent the sending of the 
+// the xml namespace to perseids because the old version REXML with
+// jruby 1.8 has a bug on line 365 of baseparser.rb which looks
+// at the attribute value delimiter rather than the attribute itself
+// for the value of an namespace declaration for the xml namespace
+// not worth patching REXML for right now
+serializeToString: function(a_xml) {
+  var str = new XMLSerializer().serializeToString(a_xml);    
+  str = str.replace(/ xmlns:xml=".*?"/g,'');
+  return str;
 }
-
-
 
 }
