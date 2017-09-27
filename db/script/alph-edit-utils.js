@@ -395,8 +395,7 @@ putContents: function(a_xml, a_url, a_doc, a_sentid)
     // check to see if we need to send a session token
     var sessionToken = $("meta[name='alpheios-sessionTokenName']").attr("content");
     var sessionHeader = $("meta[name='alpheios-sessionHeaderName']").attr("content");
-    // Only send the token to same-origin, relative URLs only.
-    if (sessionToken && sessionHeader && AlphEdit.sameOrigin(builtUrl)) {
+    if (sessionToken && sessionHeader) {
         var csrftoken = AlphEdit.getCookie(sessionToken);
         // Only if we have the cookie
         if (csrftoken) {
